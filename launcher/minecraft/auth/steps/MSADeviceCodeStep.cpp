@@ -66,8 +66,8 @@ void MSADeviceCodeStep::perform()
         { "Content-Type", "application/x-www-form-urlencoded" },
         { "Accept", "application/json" },
     };
-    m_response.reset(new QByteArray());
-    m_request = Net::Upload::makeByteArray(url, m_response.get(), payload);
+    auto [request, response] = Net::NetRequest::makeByteArray(url, payload);
+    m_request = request;
     m_request->addHeaderProxy(std::make_unique<Net::RawHeaderProxy>(headers));
     m_request->enableAutoRetry(true);
 
@@ -75,7 +75,7 @@ void MSADeviceCodeStep::perform()
     m_task->setAskRetry(false);
     m_task->addNetAction(m_request);
 
-    connect(m_task.get(), &Task::finished, this, &MSADeviceCodeStep::deviceAuthorizationFinished);
+    connect(m_task.get(), &Task::finished, this, [this, response] { deviceAuthorizationFinished(response); });
 
     m_task->start();
 }
@@ -111,21 +111,21 @@ DeviceAuthorizationResponse parseDeviceAuthorizationResponse(const QByteArray& d
     };
 }
 
-void MSADeviceCodeStep::deviceAuthorizationFinished()
+void MSADeviceCodeStep::deviceAuthorizationFinished(QByteArray* response)
 {
-    auto rsp = parseDeviceAuthorizationResponse(*m_response);
+    if (!m_request->wasSuccessful() || m_request->error() != QNetworkReply::NoError) {
+        qWarning() << "Device authorization failed:" << m_request->error() << m_request->errorString();
+        emit finished(AccountTaskState::STATE_FAILED_HARD, tr("Device authorization failed: %1").arg(m_request->errorString()));
+        return;
+    }
+
+    auto rsp = parseDeviceAuthorizationResponse(*response);
     if (!rsp.error.isEmpty() || !rsp.error_description.isEmpty()) {
         qWarning() << "Device authorization failed:" << rsp.error;
         emit finished(AccountTaskState::STATE_FAILED_HARD,
                       tr("Device authorization failed: %1").arg(rsp.error_description.isEmpty() ? rsp.error : rsp.error_description));
         return;
     }
-    if (!m_request->wasSuccessful() || m_request->error() != QNetworkReply::NoError) {
-        qWarning() << "Device authorization failed:" << *m_response;
-        emit finished(AccountTaskState::STATE_FAILED_HARD, tr("Failed to retrieve device authorization"));
-        return;
-    }
-
     if (rsp.device_code.isEmpty() || rsp.user_code.isEmpty() || rsp.verification_uri.isEmpty() || rsp.expires_in == 0) {
         qWarning() << "Device authorization failed: required fields missing";
         emit finished(AccountTaskState::STATE_FAILED_HARD, tr("Device authorization failed: required fields missing"));
@@ -153,7 +153,6 @@ void MSADeviceCodeStep::abort()
         m_request->abort();
     }
     m_is_aborted = true;
-    emit finished(AccountTaskState::STATE_FAILED_HARD, tr("Task aborted"));
 }
 
 void MSADeviceCodeStep::startPoolTimer()
@@ -182,11 +181,11 @@ void MSADeviceCodeStep::authenticateUser()
         { "Content-Type", "application/x-www-form-urlencoded" },
         { "Accept", "application/json" },
     };
-    m_response.reset(new QByteArray());
-    m_request = Net::Upload::makeByteArray(url, m_response.get(), payload);
+    auto [request, response] = Net::NetRequest::makeByteArray(url, payload);
+    m_request = request;
     m_request->addHeaderProxy(std::make_unique<Net::RawHeaderProxy>(headers));
 
-    connect(m_request.get(), &Task::finished, this, &MSADeviceCodeStep::authenticationFinished);
+    connect(m_request.get(), &Task::finished, this, [this, response] { authenticationFinished(response); });
 
     m_request->setNetwork(APPLICATION->network());
     m_request->start();
@@ -227,7 +226,7 @@ AuthenticationResponse parseAuthenticationResponse(const QByteArray& data)
              obj.toVariantMap() };
 }
 
-void MSADeviceCodeStep::authenticationFinished()
+void MSADeviceCodeStep::authenticationFinished(QByteArray* response)
 {
     if (m_request->error() == QNetworkReply::TimeoutError) {
         // rfc8628#section-3.5
@@ -239,7 +238,7 @@ void MSADeviceCodeStep::authenticationFinished()
         startPoolTimer();
         return;
     }
-    auto rsp = parseAuthenticationResponse(*m_response);
+    auto rsp = parseAuthenticationResponse(*response);
     if (rsp.error == "slow_down") {
         // rfc8628#section-3.5
         // "A variant of 'authorization_pending', the authorization request is

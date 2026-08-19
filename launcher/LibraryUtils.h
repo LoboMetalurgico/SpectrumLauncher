@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /*
- *  Prism Launcher - Minecraft Launcher
- *  Copyright (C) 2023 Rachel Powers <508861+Ryex@users.noreply.github.com>
+ *  PrismLauncher - Minecraft Launcher
+ *  Copyright (C) 2022 Jan Drögehoff <sentrycraft123@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -14,19 +14,16 @@
  *
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
- *
  */
 
-#include "net/ApiUpload.h"
-#include "net/ApiHeaderProxy.h"
+#pragma once
 
-namespace Net {
+#include <QString>
+#include <QStringList>
 
-Upload::Ptr ApiUpload::makeByteArray(QUrl url, QByteArray* output, QByteArray m_post_data)
-{
-    auto up = Upload::makeByteArray(url, output, m_post_data);
-    up->addHeaderProxy(std::make_unique<ApiHeaderProxy>());
-    return up;
-}
+namespace LibraryUtils {
 
-}  // namespace Net
+QString findMangoHud();
+
+QString find(QString libName);
+}  // namespace LibraryUtils

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /*
  *  Prism Launcher - Minecraft Launcher
- *  Copyright (C) 2023 Rachel Powers <508861+Ryex@users.noreply.github.com>
+ *  Copyright (C) 2025 Octol1ttle <l1ttleofficial@outlook.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -14,17 +14,30 @@
  *
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
- *
  */
 
 #pragma once
 
-#include "Upload.h"
+#include <QDialog>
 
-namespace Net {
+QT_BEGIN_NAMESPACE
+namespace Ui {
+class NetworkJobFailedDialog;
+}
+QT_END_NAMESPACE
 
-namespace ApiUpload {
-Upload::Ptr makeByteArray(QUrl url, QByteArray* output, QByteArray m_post_data);
+class NetworkJobFailedDialog : public QDialog {
+    Q_OBJECT
+
+   public:
+    explicit NetworkJobFailedDialog(const QString& jobName, int attempts, int requests, int failed, QWidget* parent = nullptr);
+    ~NetworkJobFailedDialog() override;
+
+    void addFailedRequest(const QUrl& url, QString error) const;
+
+   private slots:
+    void copyUrl() const;
+
+   private:
+    Ui::NetworkJobFailedDialog* m_ui;
 };
-
-}  // namespace Net

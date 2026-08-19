@@ -35,7 +35,7 @@ LanguageSelectionWidget::LanguageSelectionWidget(QWidget* parent) : QWidget(pare
     formatCheckbox = new QCheckBox(this);
     formatCheckbox->setObjectName(QStringLiteral("formatCheckbox"));
     formatCheckbox->setCheckState(APPLICATION->settings()->get("UseSystemLocale").toBool() ? Qt::Checked : Qt::Unchecked);
-    connect(formatCheckbox, &QCheckBox::stateChanged,
+    connect(formatCheckbox, &QCheckBox::stateChanged, this,
             [this]() { APPLICATION->translations()->setUseSystemLocale(formatCheckbox->isChecked()); });
     verticalLayout->addWidget(formatCheckbox);
 
@@ -63,7 +63,7 @@ void LanguageSelectionWidget::retranslate()
     QString text = tr("Don't see your language or the quality is poor?<br/><a href=\"%1\">Help us with translations!</a>")
                        .arg(BuildConfig.TRANSLATIONS_URL);
     helpUsLabel->setText(text);
-    formatCheckbox->setText(tr("Use system locales"));
+    formatCheckbox->setText(tr("Use system regional standards"));
 }
 
 void LanguageSelectionWidget::languageRowChanged(const QModelIndex& current, const QModelIndex& previous)

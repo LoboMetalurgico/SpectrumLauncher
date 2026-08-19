@@ -61,7 +61,6 @@ FtbPage::FtbPage(NewInstanceDialog* dialog, QWidget* parent) : QWidget(parent), 
 
     m_ui->versionSelectionBox->view()->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     m_ui->versionSelectionBox->view()->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
-    m_ui->versionSelectionBox->view()->parentWidget()->setMaximumHeight(300);
 
     for (int i = 0; i < m_filterModel->getAvailableSortings().size(); i++) {
         m_ui->sortByBox->addItem(m_filterModel->getAvailableSortings().keys().at(i));
@@ -146,13 +145,13 @@ void FtbPage::triggerSearch()
     m_filterModel->setSearchTerm(m_ui->searchEdit->text());
 }
 
-void FtbPage::onSortingSelectionChanged(QString data)
+void FtbPage::onSortingSelectionChanged(QString selected)
 {
-    auto toSet = m_filterModel->getAvailableSortings().value(data);
+    auto toSet = m_filterModel->getAvailableSortings().value(selected);
     m_filterModel->setSorting(toSet);
 }
 
-void FtbPage::onSelectionChanged(QModelIndex first, QModelIndex second)
+void FtbPage::onSelectionChanged(QModelIndex first, QModelIndex /*second*/)
 {
     m_ui->versionSelectionBox->clear();
 
@@ -176,14 +175,14 @@ void FtbPage::onSelectionChanged(QModelIndex first, QModelIndex second)
     suggestCurrent();
 }
 
-void FtbPage::onVersionSelectionChanged(QString data)
+void FtbPage::onVersionSelectionChanged(QString selected)
 {
-    if (data.isNull() || data.isEmpty()) {
+    if (selected.isNull() || selected.isEmpty()) {
         m_selectedVersion = "";
         return;
     }
 
-    m_selectedVersion = data;
+    m_selectedVersion = selected;
     suggestCurrent();
 }
 

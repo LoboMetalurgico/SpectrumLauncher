@@ -48,7 +48,7 @@ QString getCreditsHtml()
 {
     QFile dataFile(":/documents/credits.html");
     if (!dataFile.open(QIODevice::ReadOnly)) {
-        qWarning() << "Failed to open file '" << dataFile.fileName() << "' for reading!";
+        qWarning() << "Failed to open file" << dataFile.fileName() << "for reading:" << dataFile.errorString();
         return {};
     }
     QString fileContent = QString::fromUtf8(dataFile.readAll());
@@ -66,7 +66,7 @@ QString getLicenseHtml()
         dataFile.close();
         return output;
     } else {
-        qWarning() << "Failed to open file '" << dataFile.fileName() << "' for reading!";
+        qWarning() << "Failed to open file" << dataFile.fileName() << "for reading:" << dataFile.errorString();
         return QString();
     }
 }
@@ -121,7 +121,7 @@ AboutDialog::AboutDialog(QWidget* parent) : QDialog(parent), ui(new Ui::AboutDia
 
     connect(ui->closeButton, &QPushButton::clicked, this, &AboutDialog::close);
 
-    connect(ui->aboutQt, &QPushButton::clicked, &QApplication::aboutQt);
+    connect(ui->aboutQt, &QPushButton::clicked, APPLICATION, &QApplication::aboutQt);
 }
 
 AboutDialog::~AboutDialog()

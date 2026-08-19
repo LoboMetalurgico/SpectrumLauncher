@@ -121,8 +121,8 @@ class InstallJavaPage : public QWidget, public BasePage {
     void selectSearch() { javaVersionSelect->selectSearch(); }
     void loadList()
     {
-        majorVersionSelect->loadList();
-        javaVersionSelect->loadList();
+        majorVersionSelect->loadList(true);
+        javaVersionSelect->loadList(true);
     }
 
    public slots:
@@ -182,7 +182,7 @@ QStringList getRecommendedJavaVersionsFromVersionList(Meta::VersionList::Ptr lis
     return recommendedJavas;
 }
 
-InstallDialog::InstallDialog(const QString& uid, BaseInstance* instance, QWidget* parent)
+InstallDialog::InstallDialog(const QString& uid, MinecraftInstance* instance, QWidget* parent)
     : QDialog(parent), container(new PageContainer(this, QString(), this)), buttons(new QDialogButtonBox(this))
 {
     auto layout = new QVBoxLayout(this);
@@ -231,8 +231,8 @@ InstallDialog::InstallDialog(const QString& uid, BaseInstance* instance, QWidget
     resize(840, 480);
 
     QStringList recommendedJavas;
-    if (auto mcInst = dynamic_cast<MinecraftInstance*>(instance); mcInst) {
-        auto mc = mcInst->getPackProfile()->getComponent("net.minecraft");
+    if (instance != nullptr) {
+        auto mc = instance->getPackProfile()->getComponent("net.minecraft");
         if (mc) {
             auto file = mc->getVersionFile();  // no need for load as it should already be loaded
             if (file) {
@@ -288,6 +288,11 @@ QList<BasePage*> InstallDialog::getPages()
         new InstallJavaPage("net.adoptium.java", "adoptium", tr("Adoptium")),
         // Azul
         new InstallJavaPage("com.azul.java", "azul", tr("Azul Zulu")),
+        // IBM
+	/* Must watch out in case the AdoptOpenJDK infrastructure is deprecated.
+        In case of happening, IBM does not seem to provide as of today (03/2026) an API like Adoptium does and rather uses GitHub directly in its website: `developer.ibm.com`.
+        GitHub is known for rate limiting requests that do not use an API key from an account. */
+        new InstallJavaPage("com.ibm.java", "openj9_hex_custom", tr("IBM Semeru Open")),
     };
 }
 

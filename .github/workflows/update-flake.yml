@@ -19,15 +19,17 @@ jobs:
     runs-on: ubuntu-slim
 
     steps:
-      - uses: actions/checkout@v6
-      - uses: cachix/install-nix-action@4e002c8ec80594ecd40e759629461e26c8abed15 # v31
+      - uses: actions/checkout@v7
+      - uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31
 
       - uses: DeterminateSystems/update-flake-lock@v28
         with:
           commit-msg: "chore(nix): update lockfile"
           pr-title: "chore(nix): update lockfile"
           pr-labels: |
-            Linux
-            packaging
-            simple change
+            platform: Linux
+            area: packaging
+            complexity: low
+            priority: low
+            type: robot
             changelog:omit

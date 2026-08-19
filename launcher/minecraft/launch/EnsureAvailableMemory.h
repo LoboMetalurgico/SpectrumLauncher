@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /*
  *  Prism Launcher - Minecraft Launcher
- *  Copyright (C) 2023 Rachel Powers <508861+Ryex@users.noreply.github.com>
+ *  Copyright (C) 2026 Octol1ttle <l1ttleofficial@outlook.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -14,19 +14,23 @@
  *
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
- *
  */
 
 #pragma once
 
-#include "Download.h"
+#include "launch/LaunchStep.h"
+#include "minecraft/MinecraftInstance.h"
 
-namespace Net {
+class EnsureAvailableMemory : public LaunchStep {
+    Q_OBJECT
 
-namespace ApiDownload {
-Download::Ptr makeCached(QUrl url, MetaEntryPtr entry, Download::Options options = Download::Option::NoOptions);
-Download::Ptr makeByteArray(QUrl url, QByteArray* output, Download::Options options = Download::Option::NoOptions);
-Download::Ptr makeFile(QUrl url, QString path, Download::Options options = Download::Option::NoOptions);
-};  // namespace ApiDownload
+   public:
+    explicit EnsureAvailableMemory(LaunchTask* parent, MinecraftInstance* instance);
+    ~EnsureAvailableMemory() override = default;
 
-}  // namespace Net
+    void executeTask() override;
+    bool canAbort() const override { return false; }
+
+   private:
+    MinecraftInstance* m_instance;
+};

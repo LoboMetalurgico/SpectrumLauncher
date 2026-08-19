@@ -67,8 +67,8 @@ void FlamePackExportTask::collectFiles()
     setAbortable(false);
     QCoreApplication::processEvents();
 
-    files.clear();
-    if (!MMCZip::collectFileListRecursively(m_options.instance->gameRoot(), nullptr, &files, m_options.filter)) {
+    m_files.clear();
+    if (!MMCZip::collectFileListRecursively(m_options.instance->gameRoot(), nullptr, &m_files, m_options.filter)) {
         emitFailed(tr("Could not search for files"));
         return;
     }
@@ -88,7 +88,7 @@ void FlamePackExportTask::collectHashes()
     auto allMods = m_options.instance->loaderModList()->allMods();
     ConcurrentTask::Ptr hashingTask(new ConcurrentTask("MakeHashesTask", APPLICATION->settings()->get("NumberOfConcurrentTasks").toInt()));
     task.reset(hashingTask);
-    for (const QFileInfo& file : files) {
+    for (const QFileInfo& file : m_files) {
         const QString relative = m_gameRoot.relativeFilePath(file.absoluteFilePath());
         // require sensible file types
         if (!std::any_of(FILE_EXTENSIONS.begin(), FILE_EXTENSIONS.end(), [&relative](const QString& extension) {
@@ -99,7 +99,7 @@ void FlamePackExportTask::collectHashes()
         if (relative.startsWith("resourcepacks/") &&
             (relative.endsWith(".zip") || relative.endsWith(".zip.disabled"))) {  // is resourcepack
             auto hashTask = Hashing::createHasher(file.absoluteFilePath(), ModPlatform::ResourceProvider::FLAME);
-            connect(hashTask.get(), &Hashing::Hasher::resultsReady, [this, relative, file](QString hash) {
+            connect(hashTask.get(), &Hashing::Hasher::resultsReady, this, [this, relative, file](QString hash) {
                 if (m_state == Task::State::Running) {
                     pendingHashes.insert(hash, { relative, file.absoluteFilePath(), relative.endsWith(".zip") });
                 }
@@ -123,7 +123,7 @@ void FlamePackExportTask::collectHashes()
             }
 
             auto hashTask = Hashing::createHasher(mod->fileinfo().absoluteFilePath(), ModPlatform::ResourceProvider::FLAME);
-            connect(hashTask.get(), &Hashing::Hasher::resultsReady, [this, mod](QString hash) {
+            connect(hashTask.get(), &Hashing::Hasher::resultsReady, this, [this, mod](QString hash) {
                 if (m_state == Task::State::Running) {
                     pendingHashes.insert(hash, { mod->name(), mod->fileinfo().absoluteFilePath(), mod->enabled(), true });
                 }
@@ -167,14 +167,14 @@ void FlamePackExportTask::makeApiRequest()
 
     setStatus(tr("Finding versions for hashes..."));
     setProgress(2, 5);
-    auto response = std::make_shared<QByteArray>();
 
     QList<uint> fingerprints;
     for (auto& murmur : pendingHashes.keys()) {
         fingerprints.push_back(murmur.toUInt());
     }
 
-    task.reset(api.matchFingerprints(fingerprints, response.get()));
+    auto [matchTask, response] = FlameAPI::get().matchFingerprints(fingerprints);
+    task = matchTask;
 
     connect(task.get(), &Task::succeeded, this, [this, response] {
         QJsonParseError parseError{};
@@ -245,16 +245,16 @@ void FlamePackExportTask::getProjectsInfo()
         }
     }
 
-    auto response = std::make_shared<QByteArray>();
     Task::Ptr projTask;
+    QByteArray* response;
 
     if (addonIds.isEmpty()) {
         buildZip();
         return;
     } else if (addonIds.size() == 1) {
-        projTask = api.getProject(*addonIds.begin(), response.get());
+        std::tie(projTask, response) = FlameAPI::get().getProject(*addonIds.begin());
     } else {
-        projTask = api.getProjects(addonIds, response.get());
+        std::tie(projTask, response) = FlameAPI::get().getProjects(addonIds);
     }
 
     connect(projTask.get(), &Task::succeeded, this, [this, response, addonIds] {
@@ -319,7 +319,7 @@ void FlamePackExportTask::buildZip()
     setStatus(tr("Adding files..."));
     setProgress(4, 5);
 
-    auto zipTask = makeShared<MMCZip::ExportToZipTask>(m_options.output, m_gameRoot, files, "overrides/", true);
+    auto zipTask = makeShared<MMCZip::ExportToZipTask>(m_options.output, m_gameRoot, m_files, "overrides/", true);
     zipTask->addExtraFile("manifest.json", generateIndex());
     zipTask->addExtraFile("modlist.html", generateHTML());
 
